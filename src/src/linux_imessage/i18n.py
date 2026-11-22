@@ -74,6 +74,13 @@ EN = {
         "Message history stored on this computer will be deleted. "
         "Messages on your iPhone stay untouched.",
     "Usuń": "Delete",
+    "Usuń rozmowę…": "Delete conversation…",
+    "Usunąć rozmowę z {name}?": "Delete the conversation with {name}?",
+    "Rozmowa zniknie z tego komputera. Wiadomości na iPhonie pozostaną "
+    "nietknięte i nie wrócą tutaj; nowe wiadomości od tej osoby pojawią się normalnie.":
+        "The conversation will disappear from this computer. Messages on your iPhone stay "
+        "untouched and will not come back here; new messages from this person appear as usual.",
+    "Usunięto rozmowę": "Conversation deleted",
     "Blokada sieci: {s}": "Network block: {s}",
     "aktywna ✓": "active ✓",
     "NIEAKTYWNA": "INACTIVE",

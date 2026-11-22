@@ -1,4 +1,4 @@
-# Linux iMessage 0.2.10
+# Linux iMessage 0.2.11
 
 iMessage and SMS from your iPhone on Ubuntu, over Bluetooth.
 No Mac, no cloud, no network.
@@ -124,6 +124,7 @@ App files in your home directory:
 
 ## Version history
 
+- **0.2.11:** delete a single conversation from this computer: right-click it in the list → *Delete conversation…*. Messages on the iPhone stay untouched; deleted messages do not come back on refresh (only their IDs are remembered, no content), new ones from that person appear as usual.
 - **0.2.10:** dark app icon in the series style: the app's own symbol on a deep navy tile, the same as the other apps of the series.
 - **0.2.8:** the app icon (dock, app menu) switches light/dark together with the system **also while the app is closed** (a small helper started at login).
 - **0.2.7:** new **Aurora** theme (menu → Theme): pastel glass in light mode, an aurora glow on a deep navy background in dark mode – chosen automatically from the system; a violet → cyan gradient on the selection and the main buttons, a glow on hover. *System* keeps the usual look.

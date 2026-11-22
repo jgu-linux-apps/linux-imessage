@@ -9,7 +9,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from . import formats, netguard, theme  # noqa: E402
 from .i18n import DATE_FMT, LANG, WEEKDAYS, T  # noqa: E402
@@ -17,7 +17,7 @@ from .store import Store, load_settings, save_settings  # noqa: E402
 
 APP_ID = "pl.jaro.LinuxIMessage"
 APP_NAME = "Linux iMessage"
-VERSION = "0.2.10"
+VERSION = "0.2.11"
 BUILD_DATE = "2026-11-14"
 CREATED_BY = "Created by: JGu"
 SUPPORTED_BY = "Supported by Claude"
@@ -341,6 +341,9 @@ class App(Adw.Application):
             col.append(bottom)
             box.append(col)
             row.set_child(box)
+            click = Gtk.GestureClick(button=3)
+            click.connect("pressed", lambda _g, _n, x, y, r=row: self._conv_menu(r, x, y))
+            row.add_controller(click)
             self.conv_list.append(row)
             if addr == self.current:
                 selected = row
@@ -546,6 +549,34 @@ class App(Adw.Application):
                 return formats.norm_addr(addrs[0])
         return None
 
+    def _conv_menu(self, row, x, y):
+        pop = Gtk.Popover(has_arrow=False, pointing_to=Gdk.Rectangle(x=int(x), y=int(y), width=1, height=1))
+        btn = Gtk.Button(label=T("Usuń rozmowę…"), css_classes=["flat"])
+        btn.connect("clicked", lambda _b: (pop.popdown(), self.confirm_delete_conversation(row.addr)))
+        pop.set_child(btn)
+        pop.set_parent(row)
+        pop.connect("closed", lambda p: GLib.idle_add(p.unparent))
+        pop.popup()
+
+    def confirm_delete_conversation(self, addr):
+        dlg = Adw.AlertDialog(heading=T("Usunąć rozmowę z {name}?", name=self.name_for(addr)),
+                              body=T("Rozmowa zniknie z tego komputera. Wiadomości na iPhonie pozostaną "
+                                     "nietknięte i nie wrócą tutaj; nowe wiadomości od tej osoby pojawią się normalnie."))
+        dlg.add_response("cancel", T("Anuluj"))
+        dlg.add_response("delete", T("Usuń"))
+        dlg.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def done(d, resp):
+            if resp == "delete":
+                self.store.delete_conversation(addr)
+                if self.current == addr:
+                    self.current = None
+                    self.content_stack.set_visible_child_name("empty")
+                self.render_conversations()
+                self.toast(T("Usunięto rozmowę"))
+        dlg.connect("response", done)
+        dlg.present(self.win)
+
     def confirm_wipe(self):
         dlg = Adw.AlertDialog(heading=T("Usunąć lokalne dane?"),
                               body=T("Historia wiadomości zapisana na tym komputerze zostanie usunięta. "
@@ -640,6 +671,8 @@ class App(Adw.Application):
                 m["addr"] = (self._resolve_name(m.get("sender_name")) or "nieznany nadawca")
             if m.get("sender_name") and formats.match_key(m["addr"]) not in self.contacts:
                 self.contacts[formats.match_key(m["addr"])] = m["sender_name"]
+            if self.store.is_hidden(m["key"]):
+                continue
             if self.store.has(m["key"]):
                 if self._is_placeholder(self.store.addr_of(m["key"])) and not self._is_placeholder(m["addr"]):
                     self.store.set_addr(m["key"], m["addr"])

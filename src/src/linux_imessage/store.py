@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS messages (
   kind TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_addr_ts ON messages(addr, ts);
+CREATE TABLE IF NOT EXISTS hidden (
+  key TEXT PRIMARY KEY
+);
 """
 
 
@@ -92,12 +95,14 @@ class Store:
         if persist == self.persist:
             return
         rows = self.db.execute(f"SELECT {COLS} FROM messages").fetchall()
+        hidden = self.db.execute("SELECT key FROM hidden").fetchall()
         self.db.close()
         if not persist:
             self._remove_files()
         self.persist = persist
         self._open()
         self.db.executemany(f"INSERT OR IGNORE INTO messages ({COLS}) VALUES (?,?,?,?,?,?,?,?,?)", rows)
+        self.db.executemany("INSERT OR IGNORE INTO hidden (key) VALUES (?)", hidden)
         self.db.commit()
 
     def _remove_files(self):
@@ -109,9 +114,20 @@ class Store:
 
     def wipe(self):
         self.db.execute("DELETE FROM messages")
+        self.db.execute("DELETE FROM hidden")
         self.db.commit()
         if self.persist:
             self.db.execute("VACUUM")
+
+    def delete_conversation(self, addr):
+        """Usuwa rozmowę z tego komputera. Klucze zostają w `hidden` (bez treści),
+        żeby wiadomości wciąż obecne na iPhonie nie wróciły przy odświeżeniu."""
+        self.db.execute("INSERT OR IGNORE INTO hidden (key) SELECT key FROM messages WHERE addr=?", (addr,))
+        self.db.execute("DELETE FROM messages WHERE addr=?", (addr,))
+        self.db.commit()
+
+    def is_hidden(self, key):
+        return self.db.execute("SELECT 1 FROM hidden WHERE key=?", (key,)).fetchone() is not None
 
     def imessage_addrs(self):
         """Adresy, od których przyszła wiadomość oznaczona przez iOS jako iMessage
